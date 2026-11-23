@@ -1,0 +1,1 @@
+Nov 22 21:12:00 firewall.example.com KerioControl: [22/Nov/2026 11:04:21] IPS: Alert, severity: Medium, Rule ID: 1:2025331 ET POLICY Possible External IP Lookup Domain Observed in SNI (ipinfo.io), proto:TCP, ip/port:192.0.2.50:60208 (user:jdoe) -> 203.0.113.81:443 (service.example.net)

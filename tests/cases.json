@@ -1,0 +1,111 @@
+{
+  "_comment": "Test cases for wazuh-logtest validating Kerio Control UTM decoders and rules.",
+  "cases": [
+    {
+      "name": "IPS packet drop on reputation blacklist (Spamhaus DROP)",
+      "events": [{"file": "samples/ips_packet_drop.log"}],
+      "expect": {
+        "decoder": "kerio-control",
+        "rule_id": "100803",
+        "level": 6,
+        "fields": {
+          "kerio.action": "Packet drop",
+          "kerio.severity": "Blacklist",
+          "kerio.rule_id": "1:2400033",
+          "kerio.threat": "ET DROP Spamhaus DROP Listed Traffic Inbound group 34",
+          "proto": "TCP",
+          "srcip": "192.0.2.100",
+          "srcport": "56083",
+          "dstip": "198.51.100.102",
+          "dstport": "443"
+        }
+      }
+    },
+    {
+      "name": "IPS Alert with user context and SNI inspection",
+      "events": [{"file": "samples/ips_alert.log"}],
+      "expect": {
+        "decoder": "kerio-control",
+        "rule_id": "100801",
+        "level": 6,
+        "fields": {
+          "kerio.action": "Alert",
+          "kerio.severity": "Medium",
+          "kerio.rule_id": "1:2025331",
+          "kerio.threat": "ET POLICY Possible External IP Lookup Domain Observed in SNI (ipinfo.io)",
+          "proto": "TCP",
+          "srcip": "192.0.2.50",
+          "srcport": "60208",
+          "kerio.user": "jdoe",
+          "dstip": "203.0.113.81",
+          "dstport": "443",
+          "kerio.dst_host": "service.example.net"
+        }
+      }
+    },
+    {
+      "name": "IPS Alert with High severity",
+      "events": [{"file": "samples/ips_alert_high.log"}],
+      "expect": {
+        "decoder": "kerio-control",
+        "rule_id": "100807",
+        "level": 10,
+        "fields": {
+          "kerio.action": "Alert",
+          "kerio.severity": "High",
+          "kerio.rule_id": "1:2001234",
+          "kerio.threat": "ET EXPLOIT Remote Code Execution Vulnerability",
+          "proto": "TCP",
+          "srcip": "192.0.2.50",
+          "srcport": "60208",
+          "dstip": "203.0.113.81",
+          "dstport": "443",
+          "kerio.dst_host": "service.example.net"
+        }
+      }
+    },
+    {
+      "name": "IPS Port Scan detection",
+      "events": [{"file": "samples/ips_port_scan.log"}],
+      "expect": {
+        "decoder": "kerio-control",
+        "rule_id": "100805",
+        "level": 6,
+        "fields": {
+          "kerio.action": "Port Scan",
+          "proto": "UDP",
+          "srcip": "192.0.2.20"
+        }
+      }
+    },
+    {
+      "name": "Anti-hammering: IP blocked for password guessing",
+      "events": [{"file": "samples/anti_hammering.log"}],
+      "expect": {
+        "decoder": "kerio-control",
+        "rule_id": "100804",
+        "level": 12,
+        "fields": {
+          "srcip": "198.51.100.25"
+        }
+      }
+    },
+    {
+      "name": "negative: non-Kerio syslog is not decoded as kerio-control",
+      "events": [{"file": "samples/non_kerio_sshd.log"}],
+      "expect": {"decoder_not": "kerio-control"}
+    },
+    {
+      "name": "correlation: repeated attacks from same IP -> rule 100810 (level 13)",
+      "events": [
+        {"file": "samples/ips_packet_drop.log"},
+        {"file": "samples/ips_packet_drop.log", "replace": {"56083": "56084"}},
+        {"file": "samples/ips_packet_drop.log", "replace": {"56083": "56085"}},
+        {"file": "samples/ips_packet_drop.log", "replace": {"56083": "56086"}},
+        {"file": "samples/ips_packet_drop.log", "replace": {"56083": "56087"}},
+        {"file": "samples/ips_packet_drop.log", "replace": {"56083": "56088"}}
+      ],
+      "expect_any": {"rule_id": "100810", "level": 13}
+    }
+  ]
+}

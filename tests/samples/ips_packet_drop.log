@@ -1,0 +1,1 @@
+Nov 22 21:12:00 firewall.example.com KerioControl: [21/Nov/2026 08:59:14] IPS: Packet drop, severity: Blacklist, Rule ID: 1:2400033 ET DROP Spamhaus DROP Listed Traffic Inbound group 34, proto:TCP, ip/port:192.0.2.100:56083 -> 198.51.100.102:443

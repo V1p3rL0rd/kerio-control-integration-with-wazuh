@@ -1,0 +1,1 @@
+Nov 22 21:12:00 firewall.example.com KerioControl: [22/Nov/2026 11:04:21] IPS: Alert, severity: High, Rule ID: 1:2001234 ET EXPLOIT Remote Code Execution Vulnerability, proto:TCP, ip/port:192.0.2.50:60208 -> 203.0.113.81:443 (service.example.net)

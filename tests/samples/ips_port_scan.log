@@ -1,0 +1,1 @@
+Nov 22 21:12:00 firewall.example.com KerioControl: [21/Nov/2026 10:14:57] IPS: Port Scan, protocol: UDP, source: 192.0.2.20, destination: 198.51.100.84, 198.51.100.105, 203.0.113.238, ..., ports: 38411, 47174, 47175, 47176, 47177, 47178, 47179, 47180, 47181, 8800

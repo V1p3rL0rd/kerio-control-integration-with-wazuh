@@ -1,0 +1,60 @@
+Starting wazuh-logtest v4.14.5
+Type one log per line
+
+
+**Phase 1: Completed pre-decoding.
+	full event: 'Nov 22 21:12:00 firewall.example.com KerioControl: [21/Nov/2026 08:59:14] IPS: Packet drop, severity: Blacklist, Rule ID: 1:2400033 ET DROP Spamhaus DROP Listed Traffic Inbound group 34, proto:TCP, ip/port:192.0.2.100:56083 -> 198.51.100.102:443'
+	timestamp: 'Nov 22 21:12:00'
+	hostname: 'firewall.example.com'
+	program_name: 'KerioControl'
+
+**Phase 2: Completed decoding.
+	name: 'kerio-control'
+	dstip: '198.51.100.102'
+	dstport: '443'
+	kerio.action: 'Packet drop'
+	kerio.rule_id: '1:2400033'
+	kerio.severity: 'Blacklist'
+	kerio.threat: 'ET DROP Spamhaus DROP Listed Traffic Inbound group 34'
+	proto: 'TCP'
+	srcip: '192.0.2.100'
+	srcport: '56083'
+
+**Phase 3: Completed filtering (rules).
+	id: '100803'
+	level: '6'
+	description: 'Kerio Control IPS: трафик из черного списка репутации заблокирован: ET DROP Spamhaus DROP Listed Traffic Inbound group 34 (192.0.2.100 -> 198.51.100.102)'
+	groups: '['kerio', 'kerio_control', 'kerio_ips', 'kerio_blacklist']'
+	firedtimes: '1'
+	mail: 'False'
+**Alert to be generated.
+
+
+**Phase 1: Completed pre-decoding.
+	full event: 'Nov 22 21:12:00 firewall.example.com KerioControl: [Security] IP address 198.51.100.25 suspicious of password guessing was blocked'
+	timestamp: 'Nov 22 21:12:00'
+	hostname: 'firewall.example.com'
+	program_name: 'KerioControl'
+
+**Phase 2: Completed decoding.
+	name: 'kerio-control'
+	srcip: '198.51.100.25'
+
+**Phase 3: Completed filtering (rules).
+	id: '100804'
+	level: '12'
+	description: 'Kerio Control: IP-адрес 198.51.100.25 заблокирован за перебор паролей (Anti-hammering)'
+	groups: '['kerio', 'kerio_control', 'kerio_auth', 'authentication_failures']'
+	firedtimes: '1'
+	mail: 'False'
+**Alert to be generated.
+
+
+**Phase 1: Completed pre-decoding.
+	full event: 'Nov 21 18:00:00 wazuh-manager sshd[1234]: Accepted publickey for testuser from 192.0.2.50 port 50000 ssh2'
+	timestamp: 'Nov 21 18:00:00'
+	hostname: 'wazuh-manager'
+	program_name: 'sshd'
+
+**Phase 2: Completed decoding.
+	No decoder matched.

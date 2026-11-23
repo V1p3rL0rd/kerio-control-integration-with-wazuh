@@ -1,0 +1,125 @@
+<!--
+  Managed by kerio-control-integration-with-wazuh-siem. Do not edit on the server: changes are overwritten by deploy.sh.
+
+  Kerio Control UTM -> Wazuh rules. Decoder: etc/decoders/kerio_control.xml
+  Rule ID range: 100800-100899
+
+  Hierarchy:
+    100800  base, any Kerio Control event                               level 0
+     ├─ 100809  IPS base detection event (Alert, Drop, Port Scan)       level 5
+     │   ├─ 100801  IPS Alert (Medium/Low severity: policy, audit)      level 6
+     │   │   └─ 100807  IPS Alert (High severity)                       level 10
+     │   ├─ 100802  IPS Packet Drop (High severity / exploit / attack)  level 10
+     │   │   └─ 100803  IPS Blacklist Drop (Spamhaus, Botnet C2)        level 6
+     │   └─ 100805  IPS Port Scan detected                              level 6
+     ├─ 100804  Anti-hammering: IP blocked for password guessing        level 12
+     └─ 100806  Gateway Antivirus: malicious object blocked             level 11
+    100810  correlation on 100802, 100803, 100805: repeated attacks/scans level 13
+-->
+<group name="kerio,kerio_control,">
+
+  <!-- Base rule: any Kerio Control event -->
+  <rule id="100800" level="0">
+    <decoded_as>kerio-control</decoded_as>
+    <description>Kerio Control: событие безопасности</description>
+  </rule>
+
+  <!-- Base IPS event dispatcher -->
+  <rule id="100809" level="5">
+    <if_sid>100800</if_sid>
+    <field name="kerio.action">^Packet drop$|^Alert$|^Port Scan$</field>
+    <description>Kerio Control IPS: $(kerio.action) [$(kerio.severity)] $(kerio.threat)</description>
+  </rule>
+
+  <!-- 100801: IPS Alert (Medium/Low severity, e.g. policy warnings, vulnerable software versions) -->
+  <rule id="100801" level="6">
+    <if_sid>100809</if_sid>
+    <field name="kerio.action">^Alert$</field>
+    <description>Kerio Control IPS Alert: $(kerio.threat) от $(srcip):$(srcport) к $(dstip):$(dstport)</description>
+    <group>kerio_ips,pci_dss_11.4,</group>
+    <mitre>
+      <id>T1046</id>
+      <id>T1190</id>
+    </mitre>
+  </rule>
+
+  <!-- 100807: IPS Alert with High severity (critical policy violation / threat alert) -->
+  <rule id="100807" level="10">
+    <if_sid>100801</if_sid>
+    <field name="kerio.severity">^High$</field>
+    <description>Kerio Control IPS Alert [High]: $(kerio.threat) от $(srcip):$(srcport) к $(dstip):$(dstport)</description>
+    <group>kerio_ips,pci_dss_11.4,</group>
+    <mitre>
+      <id>T1190</id>
+    </mitre>
+  </rule>
+
+  <!-- 100802: IPS Packet drop (High severity, exploit, trojan) -->
+  <rule id="100802" level="10">
+    <if_sid>100809</if_sid>
+    <field name="kerio.action">^Packet drop$</field>
+    <description>Kerio Control IPS Drop: $(kerio.threat) от $(srcip):$(srcport) к $(dstip):$(dstport)</description>
+    <group>kerio_ips,pci_dss_11.4,</group>
+    <mitre>
+      <id>T1190</id>
+      <id>T1210</id>
+    </mitre>
+  </rule>
+
+  <!-- 100803: IPS Blacklist Drop (Spamhaus DROP, Botnet C2, Dshield) -->
+  <rule id="100803" level="6">
+    <if_sid>100802</if_sid>
+    <field name="kerio.severity">^Blacklist$</field>
+    <description>Kerio Control IPS: трафик из черного списка репутации заблокирован: $(kerio.threat) ($(srcip) -> $(dstip))</description>
+    <group>kerio_ips,kerio_blacklist,</group>
+    <mitre>
+      <id>T1071</id>
+      <id>T1584</id>
+    </mitre>
+  </rule>
+
+  <!-- 100805: Port Scan detected -->
+  <rule id="100805" level="6">
+    <if_sid>100809</if_sid>
+    <field name="kerio.action">^Port Scan$</field>
+    <description>Kerio Control IPS: обнаружено сканирование портов от $(srcip)</description>
+    <group>kerio_ips,reconnaissance,</group>
+    <mitre>
+      <id>T1046</id>
+    </mitre>
+  </rule>
+
+  <!-- 100804: Anti-hammering (password guessing attack blocked) -->
+  <rule id="100804" level="12">
+    <if_sid>100800</if_sid>
+    <match>suspicious of password guessing was blocked</match>
+    <description>Kerio Control: IP-адрес $(srcip) заблокирован за перебор паролей (Anti-hammering)</description>
+    <group>kerio_auth,authentication_failures,</group>
+    <mitre>
+      <id>T1110</id>
+    </mitre>
+  </rule>
+
+  <!-- 100806: Kerio Antivirus detected/blocked malware -->
+  <rule id="100806" level="11">
+    <if_sid>100800</if_sid>
+    <match>Kerio Antivirus block</match>
+    <description>Kerio Control Antivirus: вредоносный объект заблокирован в веб-трафике с $(srcip) (URL: $(kerio.url))</description>
+    <group>kerio_antivirus,malware,</group>
+    <mitre>
+      <id>T1204.001</id>
+    </mitre>
+  </rule>
+
+  <!-- 100810: Correlation - multiple attacks / drops from single source IP within 2 minutes -->
+  <rule id="100810" level="13" frequency="3" timeframe="120" ignore="600">
+    <if_matched_sid>100803</if_matched_sid>
+    <same_source_ip />
+    <description>Kerio Control: серия атак / сканирование с IP $(srcip) за 2 минуты (активная угроза)</description>
+    <group>kerio_attack,multiple_attacks,</group>
+    <mitre>
+      <id>T1190</id>
+    </mitre>
+  </rule>
+
+</group>

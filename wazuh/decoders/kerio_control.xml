@@ -1,0 +1,74 @@
+<!--
+  Managed by kerio-control-integration-with-wazuh-siem. Do not edit on the server: changes are overwritten by deploy.sh.
+
+  Kerio Control UTM -> Wazuh, Syslog (RFC 3164 BSD Syslog via UDP 514, tag: KerioControl)
+  Log categories: Security (IPS, Anti-hammering, Antivirus, Anti-spoofing), Filter, Alert.
+
+  Examples:
+    IPS Packet drop:
+      Nov 22 21:12:00 firewall.example.com KerioControl: [21/Nov/2026 08:59:14] IPS: Packet drop, severity: Blacklist, Rule ID: 1:2400033 ET DROP Spamhaus DROP Listed Traffic Inbound group 34, proto:TCP, ip/port:192.0.2.100:56083 -> 198.51.100.102:443
+    IPS Alert with user:
+      Nov 22 21:12:00 firewall.example.com KerioControl: [22/Nov/2026 11:04:21] IPS: Alert, severity: Medium, Rule ID: 1:2025331 ET POLICY Possible External IP Lookup Domain Observed in SNI (ipinfo.io), proto:TCP, ip/port:192.0.2.50:60208 (user:jdoe) -> 203.0.113.81:443 (service.example.net)
+    IPS Port Scan:
+      Nov 22 21:12:00 firewall.example.com KerioControl: [21/Nov/2026 10:14:57] IPS: Port Scan, protocol: UDP, source: 192.0.2.20, destination: 198.51.100.84, ..., ports: 38411, 47174, ...
+    Anti-hammering / Brute-force:
+      Nov 22 21:12:00 firewall.example.com KerioControl: [Security] IP address 198.51.100.25 suspicious of password guessing was blocked
+-->
+
+<!-- Base parent decoder for Kerio Control -->
+<decoder name="kerio-control">
+  <program_name>KerioControl</program_name>
+</decoder>
+
+<decoder name="kerio-control">
+  <prematch type="pcre2">\bKerioControl\b|\bIPS:\s*|\[(?:Security|Filter|Alert)\]</prematch>
+</decoder>
+
+<!-- 1. IPS Alert and Packet drop events (Action, Severity, Rule ID, Threat, Protocol, Source IP & Port) -->
+<decoder name="kerio-control-fields">
+  <parent>kerio-control</parent>
+  <regex type="pcre2">IPS:\s*([^,]+),\s*severity:\s*([^,]+),\s*Rule ID:\s*(\S+)\s+(.+?),\s*proto:(\w+),\s*ip/port:(\d+\.\d+\.\d+\.\d+):(\d+)</regex>
+  <order>kerio.action, kerio.severity, kerio.rule_id, kerio.threat, proto, srcip, srcport</order>
+</decoder>
+
+<!-- Destination IP and Port extraction for IPS events -->
+<decoder name="kerio-control-fields">
+  <parent>kerio-control</parent>
+  <regex type="pcre2">->\s*(\d+\.\d+\.\d+\.\d+):(\d+)</regex>
+  <order>dstip, dstport</order>
+</decoder>
+
+<!-- Optional user context extraction from source: (user:USERNAME) -->
+<decoder name="kerio-control-fields">
+  <parent>kerio-control</parent>
+  <regex type="pcre2">\(user:([^)]+)\)</regex>
+  <order>kerio.user</order>
+</decoder>
+
+<!-- Optional destination hostname/DNS extraction: -> dst:port (HOSTNAME) -->
+<decoder name="kerio-control-fields">
+  <parent>kerio-control</parent>
+  <regex type="pcre2">->\s*\d+\.\d+\.\d+\.\d+:\d+\s*\(([^)]+)\)</regex>
+  <order>kerio.dst_host</order>
+</decoder>
+
+<!-- 2. Port Scan detection events -->
+<decoder name="kerio-control-fields">
+  <parent>kerio-control</parent>
+  <regex type="pcre2">IPS:\s*(Port Scan),\s*protocol:\s*(\w+),\s*source:\s*(\d+\.\d+\.\d+\.\d+)</regex>
+  <order>kerio.action, proto, srcip</order>
+</decoder>
+
+<!-- 3. Anti-hammering / Password guessing defense -->
+<decoder name="kerio-control-fields">
+  <parent>kerio-control</parent>
+  <regex type="pcre2">IP address (\d+\.\d+\.\d+\.\d+) suspicious of password guessing was blocked</regex>
+  <order>srcip</order>
+</decoder>
+
+<!-- 4. Kerio Antivirus block events -->
+<decoder name="kerio-control-fields">
+  <parent>kerio-control</parent>
+  <regex type="pcre2">DENY URL 'Kerio Antivirus block'\s+(\d+\.\d+\.\d+\.\d+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)</regex>
+  <order>srcip, kerio.user, proto, kerio.http_method, kerio.url</order>
+</decoder>
